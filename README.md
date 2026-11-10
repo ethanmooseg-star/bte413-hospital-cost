@@ -16,6 +16,7 @@ The notebook loads its data from a public link, so it runs on a fresh runtime an
 |---|---|
 | `BTE413_Final_Group_Project_Notebook.ipynb` | The one notebook: data, regression, classification, the link between them, and a check against the slides |
 | `sparcs_2024_clean_sample.csv.gz` | The cleaned data: 200,000 random stays, with a fixed `split` column (160,000 train, 40,000 test) |
+| `oof_probabilities_admission.csv.gz` | The classification group's destination probabilities (admission-time variables, out-of-fold for the train rows), used in the link |
 | `clean_sparcs_2024.py` | The cleaning script that makes the data file from the raw state file |
 | `BTE413_Final_Group_Project_Notebook_outputs_backup.html` | The notebook with its outputs, in case Colab or Wi-Fi fails |
 
@@ -24,7 +25,7 @@ The notebook loads its data from a public link, so it runs on a fresh runtime an
 - **Data:** New York State Hospital Inpatient Discharges (SPARCS), 2024. A public, de-identified file (no names, no patient IDs, no dates). The full file has about 2.2 million stays; we use a random 200,000.
 - **Regression (Ethan and Niko):** estimate what a stay will cost at the moment of admission. The model only uses what a hospital knows when the patient arrives. Linear regression on four variables (age group, type of admission, main payer, facility), predicting the log of cost. It is explainable, which a hospital needs. We train and test on the 90% of stays under $54,107, so it describes typical stays.
 - **Classification (Mac and Jacob):** predict where the patient goes after the stay, in four groups: Home, Post-acute facility, Died or hospice, Other. Logistic regression, a decision tree and a neural network, compared by macro F1.
-- **The link:** does knowing the likely destination help predict cost? Adding the predicted destination (from admission-time variables) to the cost model changes R² by +0.0006. Even the true destination, which is only known after the stay, adds +0.025.
+- **The link:** does knowing the likely destination help predict cost? Adding the predicted destination (from admission-time variables) to the cost model changes R² by +0.0006. Using the classification group's own exported probabilities gives the same answer (+0.0005). Even the true destination, which is only known after the stay, adds +0.025.
 
 ## Results (test rows)
 
