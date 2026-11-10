@@ -8,7 +8,7 @@ Regression group: Ethan Grossman and Niko. Classification group: Mac and Jacob. 
 2. Choose **Runtime > Run all**.
 3. The last cell compares every number with the slides and prints OK or DIFFERS.
 
-The notebook loads its data from a public link, so it runs on a fresh runtime and for anyone else. By default it runs only the final models. To also rerun every experiment behind them (variable screens, k-NN, neural networks, cross-validation, ablation), set `RUN_FULL = True` in the first code cell. That takes about 45 minutes.
+The notebook loads its data from a public link, so it runs on a fresh runtime and for anyone else. By default it runs only the final models. To also rerun every experiment behind them (variable screens, k-NN, neural networks, cross-validation, ablation), set `RUN_FULL = True` in the first code cell. That took about 4 minutes on a laptop; on a free Colab runtime allow 20 to 30 minutes.
 
 ## What is in this folder
 
