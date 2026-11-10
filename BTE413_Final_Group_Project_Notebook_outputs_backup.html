@@ -3,7 +3,7 @@
 <html lang="en">
 <head><meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>demo_local_executed</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+<title>backup_with_outputs</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
 <style type="text/css">
     pre { line-height: 125%; }
 td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
@@ -7796,18 +7796,55 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b0e562ff">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=3c71d066">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="BTE-413-Final-Group-Project:-predicting-the-cost-of-a-hospital-stay-at-admission">BTE 413 Final Group Project: predicting the cost of a hospital stay at admission<a class="anchor-link" href="#BTE-413-Final-Group-Project:-predicting-the-cost-of-a-hospital-stay-at-admission">¶</a></h1><p><strong>Regression group demo.</strong> Run <strong>Runtime &gt; Run all</strong>. It takes about a minute and needs no Google Drive: the data loads from a public link.</p>
-<p>What it shows, in order: (1) the data, (2) which variables help, (3) the final model and its test score, (4) what drives cost. A check at the end compares every number with the slides.</p>
+<h1 id="BTE-413-Final-Group-Project:-hospital-stays-in-New-York,-2024">BTE 413 Final Group Project: hospital stays in New York, 2024<a class="anchor-link" href="#BTE-413-Final-Group-Project:-hospital-stays-in-New-York,-2024">¶</a></h1><p>One notebook for the whole project. Run <strong>Runtime &gt; Run all</strong>. It takes about a minute and needs no Google Drive: the data loads from a public link.</p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>What</th>
+<th>Who</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>The data and the four destination groups</td>
+<td>everyone</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Regression:</strong> what will a stay cost, known at admission</td>
+<td>Ethan and Niko</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Classification:</strong> where does the patient go after the stay</td>
+<td>Mac and Jacob</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>The link:</strong> does the likely destination help predict cost</td>
+<td>both groups</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Do the numbers match the slides?</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Fairness and ethics (Nikki) are in separate notes.</p>
+<p><strong>Fast mode and full mode.</strong> <code>RUN_FULL = False</code> (the default) runs only the final models and their scores. Set <code>RUN_FULL = True</code> to also rerun every experiment behind them (variable screens, k-NN, neural network, cross-validation, ablation). Full mode takes roughly 45 minutes.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=9b99a00f">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=56b27d70">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7815,33 +7852,42 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span><span class="o">,</span><span class="w"> </span><span class="nn">time</span><span class="o">,</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span><span class="o">,</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">sparse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.compose</span><span class="w"> </span><span class="kn">import</span> <span class="n">ColumnTransformer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">OneHotEncoder</span><span class="p">,</span> <span class="n">StandardScaler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.dummy</span><span class="w"> </span><span class="kn">import</span> <span class="n">DummyClassifier</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.tree</span><span class="w"> </span><span class="kn">import</span> <span class="n">DecisionTreeClassifier</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.linear_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">LinearRegression</span><span class="p">,</span> <span class="n">LogisticRegression</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">accuracy_score</span><span class="p">,</span> <span class="n">mean_absolute_error</span><span class="p">,</span> <span class="n">median_absolute_error</span><span class="p">,</span> <span class="n">r2_score</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">KFold</span><span class="p">,</span> <span class="n">cross_val_predict</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">OneHotEncoder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.neural_network</span><span class="w"> </span><span class="kn">import</span> <span class="n">MLPClassifier</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">KFold</span><span class="p">,</span> <span class="n">StratifiedKFold</span><span class="p">,</span> <span class="n">cross_val_predict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="n">accuracy_score</span><span class="p">,</span> <span class="n">classification_report</span><span class="p">,</span> <span class="n">f1_score</span><span class="p">,</span> <span class="n">mean_absolute_error</span><span class="p">,</span>
+                             <span class="n">median_absolute_error</span><span class="p">,</span> <span class="n">precision_recall_fscore_support</span><span class="p">,</span> <span class="n">r2_score</span><span class="p">)</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">"ignore"</span><span class="p">)</span>
+
+<span class="n">RUN_FULL</span> <span class="o">=</span> <span class="kc">False</span>   <span class="c1"># True also reruns every experiment (about 45 minutes)</span>
 
 <span class="c1"># Public link to the cleaned data (NY SPARCS Hospital Inpatient Discharges 2024, de-identified, 200,000 random stays)</span>
-<span class="n">DATA_URL</span> <span class="o">=</span> <span class="s1">'/Users/ethangrossman/Desktop/Fall 2026/BTE 413 - Machine Learning/Final Group Project/bte413-hospital-cost/sparcs_2024_clean_sample.csv.gz'</span>
+<span class="n">DATA_URL</span> <span class="o">=</span> <span class="s1">'https://raw.githubusercontent.com/ethanmooseg-star/bte413-hospital-cost/main/sparcs_2024_clean_sample.csv.gz'</span>
 </pre></div>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=99b4b8ed">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=fbc2dd6e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="1.-The-data">1. The data<a class="anchor-link" href="#1.-The-data">¶</a></h2><p>Cleaned by <code>clean_sparcs_2024.py</code> (in the same repository). The train and test labels are fixed in the <code>split</code> column, so everyone uses the same rows.</p>
+<h2 id="Part-1.-The-data-and-the-destination-groups">Part 1. The data and the destination groups<a class="anchor-link" href="#Part-1.-The-data-and-the-destination-groups">¶</a></h2><p>Cleaned by <code>clean_sparcs_2024.py</code> (in the same repository). The train and test labels are fixed in the <code>split</code> column, so both groups use the same rows.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=fa4cd975">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=d7357ee6">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7849,10 +7895,10 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">DATA_URL</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">{</span><span class="s1">'permanent_facility_id'</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="s1">'apr_mdc_code'</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="s1">'apr_drg_code'</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-                                  <span class="s1">'zip_code'</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="s1">'ccsr_diagnosis_code'</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="s1">'ccsr_procedure_code'</span><span class="p">:</span> <span class="nb">str</span><span class="p">})</span>
-<span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">'split'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'train'</span><span class="p">],</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">'split'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'test'</span><span class="p">]</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> stays | </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">train</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> train | </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">test</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> test"</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">CODE_COLS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"permanent_facility_id"</span><span class="p">,</span> <span class="s2">"apr_mdc_code"</span><span class="p">,</span> <span class="s2">"apr_drg_code"</span><span class="p">,</span> <span class="s2">"ccsr_diagnosis_code"</span><span class="p">,</span> <span class="s2">"ccsr_procedure_code"</span><span class="p">,</span> <span class="s2">"zip_code"</span><span class="p">]</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">DATA_URL</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">CODE_COLS</span><span class="p">})</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> stays | </span><span class="si">{</span><span class="n">df</span><span class="p">[</span><span class="s1">'split'</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">200000</span><span class="p">,</span> <span class="mi">27</span><span class="p">),</span> <span class="s2">"Unexpected shape: the data file changed."</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cost is very skewed: average $</span><span class="si">{</span><span class="n">df</span><span class="p">[</span><span class="s1">'total_costs'</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2">, middle $</span><span class="si">{</span><span class="n">df</span><span class="p">[</span><span class="s1">'total_costs'</span><span class="p">]</span><span class="o">.</span><span class="n">median</span><span class="p">()</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2">, so we predict the log of cost."</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -7866,7 +7912,7 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>200,000 stays | 160,000 train | 40,000 test
+<pre>200,000 stays | {'train': 160000, 'test': 40000}
 Cost is very skewed: average $26,671, middle $14,130, so we predict the log of cost.
 </pre>
 </div>
@@ -7874,18 +7920,17 @@ Cost is very skewed: average $26,671, middle $14,130, so we predict the log of c
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6c05793a">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e7f600c8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="2.-Which-variables-help?">2. Which variables help?<a class="anchor-link" href="#2.-Which-variables-help?">¶</a></h2><p><strong>The rule:</strong> the model runs at admission, so it may only use what a hospital knows when the patient arrives. Diagnosis, procedure, severity, length of stay and discharge status are set later, so they are not allowed.</p>
-<p>A Fisher-style F test on the train rows: how much of the difference in cost each admission-time variable explains.</p>
+<p>The classification group's target <code>disp4</code> groups the 19 raw discharge destinations into 4 classes.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=a5f15dbf">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=d4b334d7">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7893,10 +7938,71 @@ Cost is very skewed: average $26,671, middle $14,130, so we predict the log of c
 <div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">f_test</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">col</span><span class="p">):</span>
-    <span class="n">y</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="s1">'log_total_costs'</span><span class="p">];</span> <span class="n">g</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">col</span><span class="p">])</span>
-    <span class="n">ssb</span> <span class="o">=</span> <span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="o">*</span> <span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">-</span> <span class="n">y</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-    <span class="n">k</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">ngroups</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">);</span> <span class="n">sst</span> <span class="o">=</span> <span class="p">((</span><span class="n">y</span> <span class="o">-</span> <span class="n">y</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">GROUPS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"Home"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"Home or Self Care"</span><span class="p">,</span> <span class="s2">"Home w/ Home Health Services"</span><span class="p">],</span>
+    <span class="s2">"Post-acute facility"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"Skilled Nursing Home"</span><span class="p">,</span> <span class="s2">"Inpatient Rehabilitation Facility"</span><span class="p">,</span>
+        <span class="s2">"Facility w/ Custodial/Supportive Care"</span><span class="p">,</span> <span class="s2">"Medicare Cert Long Term Care Hospital"</span><span class="p">,</span>
+        <span class="s2">"Medicaid Cert Nursing Facility"</span><span class="p">,</span> <span class="s2">"Hosp Basd Medicare Approved Swing Bed"</span><span class="p">],</span>
+    <span class="s2">"Died or hospice"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"Expired"</span><span class="p">,</span> <span class="s2">"Hospice - Home"</span><span class="p">,</span> <span class="s2">"Hospice - Medical Facility"</span><span class="p">],</span>
+    <span class="s2">"Other"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"Left Against Medical Advice"</span><span class="p">,</span> <span class="s2">"Short-term Hospital"</span><span class="p">,</span>
+        <span class="s2">"Psychiatric Hospital or Unit of Hosp"</span><span class="p">,</span> <span class="s2">"Another Type Not Listed"</span><span class="p">,</span>
+        <span class="s2">"Court/Law Enforcement"</span><span class="p">,</span> <span class="s2">"Cancer Center or Childrens Hospital"</span><span class="p">,</span>
+        <span class="s2">"Federal Health Care Facility"</span><span class="p">,</span> <span class="s2">"Critical Access Hospital"</span><span class="p">],</span>
+<span class="p">}</span>
+<span class="n">lookup</span> <span class="o">=</span> <span class="p">{</span><span class="n">raw</span><span class="p">:</span> <span class="n">g</span> <span class="k">for</span> <span class="n">g</span><span class="p">,</span> <span class="n">raws</span> <span class="ow">in</span> <span class="n">GROUPS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">for</span> <span class="n">raw</span> <span class="ow">in</span> <span class="n">raws</span><span class="p">}</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"disp4"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"patient_disposition"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">lookup</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"unmapped rows:"</span><span class="p">,</span> <span class="n">df</span><span class="p">[</span><span class="s2">"disp4"</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"disp4"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">(</span><span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>unmapped rows: 0
+disp4
+Home                   0.793
+Post-acute facility    0.118
+Other                  0.055
+Died or hospice        0.034
+Name: proportion, dtype: float64
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=387c0009">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="Part-2.-Regression:-what-will-a-stay-cost,-known-at-admission?-(Ethan-and-Niko)">Part 2. Regression: what will a stay cost, known at admission? <em>(Ethan and Niko)</em><a class="anchor-link" href="#Part-2.-Regression:-what-will-a-stay-cost,-known-at-admission?-(Ethan-and-Niko)">¶</a></h2><p><strong>The rule:</strong> the model runs at admission, so it may only use what a hospital knows when the patient arrives. Diagnosis, procedure, severity, length of stay and discharge status are set later, so they are not allowed.</p>
+<p>First, a Fisher-style F test on the train rows: how much of the difference in cost each admission-time variable explains.</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=962fb895">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">'split'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'train'</span><span class="p">],</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">'split'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'test'</span><span class="p">]</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">f_test</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">col</span><span class="p">):</span>
+    <span class="n">y_cost</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="s1">'log_total_costs'</span><span class="p">];</span> <span class="n">g</span> <span class="o">=</span> <span class="n">y_cost</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">col</span><span class="p">])</span>
+    <span class="n">ssb</span> <span class="o">=</span> <span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="o">*</span> <span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">-</span> <span class="n">y_cost</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">k</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">ngroups</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">);</span> <span class="n">sst</span> <span class="o">=</span> <span class="p">((</span><span class="n">y_cost</span> <span class="o">-</span> <span class="n">y_cost</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">ssb</span> <span class="o">/</span> <span class="p">(</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="p">((</span><span class="n">sst</span> <span class="o">-</span> <span class="n">ssb</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="n">k</span><span class="p">)),</span> <span class="n">ssb</span> <span class="o">/</span> <span class="n">sst</span>
 
 <span class="n">ADMISSION</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'age_group'</span><span class="p">,</span> <span class="s1">'type_of_admission'</span><span class="p">,</span> <span class="s1">'emergency_department_indicator'</span><span class="p">,</span> <span class="s1">'payment_typology_1'</span><span class="p">,</span>
@@ -7935,23 +8041,23 @@ Facility's F is low only because it has 204 groups; compare the share of varianc
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b6435dd9">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=bbb45cf7">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="3.-The-final-model-and-its-test-score">3. The final model and its test score<a class="anchor-link" href="#3.-The-final-model-and-its-test-score">¶</a></h2><p>Linear regression on four variables: age group, type of admission, main payer, facility. It is explainable, which a hospital needs.</p>
+<h3 id="The-final-regression-model-and-its-test-score">The final regression model and its test score<a class="anchor-link" href="#The-final-regression-model-and-its-test-score">¶</a></h3><p>Linear regression on four variables: age group, type of admission, main payer, facility. It is explainable, which a hospital needs.</p>
 <p>We train and test on the 90% of stays under the high-cost cutoff. The cutoff uses the final cost, so a hospital cannot apply it at admission: this model describes typical stays.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=88e1868d">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=86763f03">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="n">LEAN</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'age_group'</span><span class="p">,</span> <span class="s1">'type_of_admission'</span><span class="p">,</span> <span class="s1">'payment_typology_1'</span><span class="p">,</span> <span class="s1">'permanent_facility_id'</span><span class="p">]</span>
@@ -7963,7 +8069,7 @@ Facility's F is low only because it has 204 groups; compare the share of varianc
 <span class="n">final</span> <span class="o">=</span> <span class="n">LinearRegression</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">enc</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">trim_train</span><span class="p">[</span><span class="n">LEAN</span><span class="p">]),</span> <span class="n">trim_train</span><span class="p">[</span><span class="s1">'log_total_costs'</span><span class="p">])</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">report</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">final</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">enc</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">LEAN</span><span class="p">]));</span> <span class="n">e</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">'total_costs'</span><span class="p">]</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">final</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">enc</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">LEAN</span><span class="p">]))</span>
     <span class="n">r2</span><span class="p">,</span> <span class="n">typical</span><span class="p">,</span> <span class="n">avg</span> <span class="o">=</span> <span class="n">r2_score</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">'log_total_costs'</span><span class="p">],</span> <span class="n">p</span><span class="p">),</span> <span class="n">median_absolute_error</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">'total_costs'</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span> <span class="n">mean_absolute_error</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">'total_costs'</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">): R2 (log) = </span><span class="si">{</span><span class="n">r2</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> | typical miss = $</span><span class="si">{</span><span class="n">typical</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2"> | average miss = $</span><span class="si">{</span><span class="n">avg</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">r2</span><span class="p">,</span> <span class="n">typical</span><span class="p">,</span> <span class="n">avg</span>
@@ -7997,22 +8103,22 @@ Same model on ALL test stays       (40,000): R2 (log) = 0.312 | typical miss = $
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=93c5f0e9">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1b261c6d">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="4.-What-drives-cost">4. What drives cost<a class="anchor-link" href="#4.-What-drives-cost">¶</a></h2><p>Percent difference in cost against a patient who is 70 or older, admitted through the emergency department, with Medicare. Negative means cheaper.</p>
+<h3 id="What-drives-cost">What drives cost<a class="anchor-link" href="#What-drives-cost">¶</a></h3><p>Percent difference in cost against a patient who is 70 or older, admitted through the emergency department, with Medicare. Negative means cheaper.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=d48ea617">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=10503fbc">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [6]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="n">REF</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'age_group'</span><span class="p">:</span> <span class="s1">'70 or Older'</span><span class="p">,</span> <span class="s1">'type_of_admission'</span><span class="p">:</span> <span class="s1">'Emergency'</span><span class="p">,</span> <span class="s1">'payment_typology_1'</span><span class="p">:</span> <span class="s1">'Medicare'</span><span class="p">}</span>
@@ -8072,33 +8178,305 @@ Hospitals against the most common one (001456): 3 lowest and 3 highest
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e03b977b">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1c9e33b1">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="5.-Do-the-numbers-match-the-slides?">5. Do the numbers match the slides?<a class="anchor-link" href="#5.-Do-the-numbers-match-the-slides?">¶</a></h2>
+<h3 id="Regression-experiments-behind-the-final-model-(full-mode-only)">Regression experiments behind the final model <em>(full mode only)</em><a class="anchor-link" href="#Regression-experiments-behind-the-final-model-(full-mode-only)">¶</a></h3><p>Baseline, the variable screen (add one variable at a time), k-NN, the neural network and the decision tree picture. Set <code>RUN_FULL = True</code> at the top to run them.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=697c4394">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=41f438d9">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [6]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [7]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">checks</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="p">(</span><span class="s1">'Final model R2, typical stays'</span><span class="p">,</span> <span class="n">typical_stays</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.393</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">),</span>
-    <span class="p">(</span><span class="s1">'Final model typical miss ($)'</span><span class="p">,</span> <span class="n">typical_stays</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">5005</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
-    <span class="p">(</span><span class="s1">'Final model average miss ($)'</span><span class="p">,</span> <span class="n">typical_stays</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="mi">7571</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
-    <span class="p">(</span><span class="s1">'Same model R2, all test stays'</span><span class="p">,</span> <span class="n">all_stays</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.312</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">),</span>
-    <span class="p">(</span><span class="s1">'Same model average miss ($)'</span><span class="p">,</span> <span class="n">all_stays</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="mi">17148</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
-<span class="p">]</span>
-<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">got</span><span class="p">,</span> <span class="n">want</span><span class="p">,</span> <span class="n">tol</span> <span class="ow">in</span> <span class="n">checks</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'OK     '</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nb">abs</span><span class="p">(</span><span class="n">got</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">want</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">tol</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'DIFFERS'</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">got</span><span class="si">:</span><span class="s2">,.3f</span><span class="si">}</span><span class="s2"> (slides: </span><span class="si">{</span><span class="n">want</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="c1"># Prepare the data the way the original regression starter did</span>
+    <span class="n">df</span><span class="p">[</span><span class="s1">'log_length_of_stay'</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">'length_of_stay'</span><span class="p">])</span>
+    <span class="n">train</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">'split'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'train'</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">train</span><span class="p">[</span><span class="s1">'log_total_costs'</span><span class="p">]</span>
+    <span class="n">cv</span> <span class="o">=</span> <span class="n">KFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.dummy</span><span class="w"> </span><span class="kn">import</span> <span class="n">DummyRegressor</span>
+    <span class="n">CATEGORICAL</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'age_group'</span><span class="p">,</span> <span class="s1">'type_of_admission'</span><span class="p">,</span> <span class="s1">'emergency_department_indicator'</span><span class="p">,</span> <span class="s1">'payment_typology_1'</span><span class="p">,</span> <span class="s1">'health_service_area'</span><span class="p">,</span> <span class="s1">'permanent_facility_id'</span><span class="p">]</span>
+    <span class="n">NUMERIC</span> <span class="o">=</span> <span class="p">[]</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=6a169ea5">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [8]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">score</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">cat</span><span class="p">,</span> <span class="n">num</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="n">cv</span><span class="p">):</span>
+        <span class="n">pre</span> <span class="o">=</span> <span class="n">ColumnTransformer</span><span class="p">([(</span><span class="s1">'cat'</span><span class="p">,</span> <span class="n">OneHotEncoder</span><span class="p">(</span><span class="n">handle_unknown</span><span class="o">=</span><span class="s1">'ignore'</span><span class="p">),</span> <span class="n">cat</span><span class="p">)],</span> <span class="n">remainder</span><span class="o">=</span><span class="s1">'passthrough'</span><span class="p">)</span>
+        <span class="c1"># out-of-fold predictions: each row is predicted by a model that did not see it</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">cross_val_predict</span><span class="p">(</span><span class="n">Pipeline</span><span class="p">([(</span><span class="s1">'pre'</span><span class="p">,</span> <span class="n">pre</span><span class="p">),</span> <span class="p">(</span><span class="s1">'m'</span><span class="p">,</span> <span class="n">model</span><span class="p">)]),</span> <span class="n">train</span><span class="p">[</span><span class="n">cat</span> <span class="o">+</span> <span class="n">num</span><span class="p">],</span> <span class="n">y</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="n">cv</span><span class="p">)</span>
+        <span class="n">dollars_true</span><span class="p">,</span> <span class="n">dollars_pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">pred</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">R2_log</span><span class="o">=</span><span class="n">r2_score</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">pred</span><span class="p">),</span>
+                   <span class="n">median_miss</span><span class="o">=</span><span class="n">median_absolute_error</span><span class="p">(</span><span class="n">dollars_true</span><span class="p">,</span> <span class="n">dollars_pred</span><span class="p">),</span>
+                   <span class="n">MAE</span><span class="o">=</span><span class="n">mean_absolute_error</span><span class="p">(</span><span class="n">dollars_true</span><span class="p">,</span> <span class="n">dollars_pred</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: R2 (log) = </span><span class="si">{</span><span class="n">out</span><span class="p">[</span><span class="s1">'R2_log'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> | median miss = $</span><span class="si">{</span><span class="n">out</span><span class="p">[</span><span class="s1">'median_miss'</span><span class="p">]</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2"> | MAE = $</span><span class="si">{</span><span class="n">out</span><span class="p">[</span><span class="s1">'MAE'</span><span class="p">]</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">score</span><span class="p">(</span><span class="n">DummyRegressor</span><span class="p">(</span><span class="n">strategy</span><span class="o">=</span><span class="s1">'mean'</span><span class="p">),</span> <span class="n">CATEGORICAL</span><span class="p">,</span> <span class="n">NUMERIC</span><span class="p">,</span> <span class="s1">'Baseline (always the average)'</span><span class="p">))</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">score</span><span class="p">(</span><span class="n">LinearRegression</span><span class="p">(),</span> <span class="n">CATEGORICAL</span><span class="p">,</span> <span class="n">NUMERIC</span><span class="p">,</span> <span class="s1">'Linear regression'</span><span class="p">)))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=8e7e2598">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [9]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="c1"># Explainable model (group decision 11/3): four variables, linear regression on log cost. Scored the same way as above.</span>
+    <span class="n">LEAN</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'age_group'</span><span class="p">,</span> <span class="s1">'type_of_admission'</span><span class="p">,</span> <span class="s1">'payment_typology_1'</span><span class="p">,</span> <span class="s1">'permanent_facility_id'</span><span class="p">]</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">score</span><span class="p">(</span><span class="n">LinearRegression</span><span class="p">(),</span> <span class="n">LEAN</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">'Lean linear regression (4 variables)'</span><span class="p">)))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=d5039fa3">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [10]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="n">STARTER</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'age_group'</span><span class="p">,</span> <span class="s1">'type_of_admission'</span><span class="p">,</span> <span class="s1">'emergency_department_indicator'</span><span class="p">,</span> <span class="s1">'payment_typology_1'</span><span class="p">,</span> <span class="s1">'health_service_area'</span><span class="p">]</span>
+    <span class="n">CANDIDATES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'permanent_facility_id'</span><span class="p">,</span> <span class="s1">'hospital_county'</span><span class="p">,</span> <span class="s1">'zip_code'</span><span class="p">,</span> <span class="s1">'payment_typology_2'</span><span class="p">,</span> <span class="s1">'payment_typology_3'</span><span class="p">,</span>
+                  <span class="s1">'gender'</span><span class="p">,</span> <span class="s1">'race'</span><span class="p">,</span> <span class="s1">'ethnicity'</span><span class="p">,</span> <span class="s1">'patient_disposition'</span><span class="p">,</span> <span class="s1">'apr_severity_of_illness_code'</span><span class="p">,</span>
+                  <span class="s1">'apr_risk_of_mortality'</span><span class="p">,</span> <span class="s1">'apr_drg_code'</span><span class="p">,</span> <span class="s1">'ccsr_diagnosis_code'</span><span class="p">,</span> <span class="s1">'ccsr_procedure_code'</span><span class="p">,</span> <span class="s1">'log_length_of_stay'</span><span class="p">]</span>
+
+    <span class="n">cv3</span> <span class="o">=</span> <span class="n">KFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>   <span class="c1"># 3 folds so the screen runs faster</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">io</span><span class="o">,</span><span class="w"> </span><span class="nn">contextlib</span>
+    <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">redirect_stdout</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()):</span>          <span class="c1"># hide the per-run printouts</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">score</span><span class="p">(</span><span class="n">LinearRegression</span><span class="p">(),</span> <span class="n">STARTER</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">'starter'</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="n">cv3</span><span class="p">)</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">CANDIDATES</span><span class="p">:</span>
+            <span class="n">cat</span> <span class="o">=</span> <span class="n">STARTER</span> <span class="o">+</span> <span class="p">([]</span> <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s1">'log_length_of_stay'</span> <span class="k">else</span> <span class="p">[</span><span class="n">c</span><span class="p">])</span>
+            <span class="n">num</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'log_length_of_stay'</span><span class="p">]</span> <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s1">'log_length_of_stay'</span> <span class="k">else</span> <span class="p">[]</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">score</span><span class="p">(</span><span class="n">LinearRegression</span><span class="p">(),</span> <span class="n">cat</span><span class="p">,</span> <span class="n">num</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="n">cv3</span><span class="p">)</span>
+            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">c</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="s1">'R2_log'</span><span class="p">]</span> <span class="o">-</span> <span class="n">base</span><span class="p">[</span><span class="s1">'R2_log'</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s1">'median_miss'</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s1">'MAE'</span><span class="p">]))</span>
+    <span class="n">screen</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">'added'</span><span class="p">,</span> <span class="s1">'R2_gain'</span><span class="p">,</span> <span class="s1">'median_miss'</span><span class="p">,</span> <span class="s1">'MAE'</span><span class="p">])</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s1">'R2_gain'</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"starter: R2 </span><span class="si">{</span><span class="n">base</span><span class="p">[</span><span class="s1">'R2_log'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, median miss $</span><span class="si">{</span><span class="n">base</span><span class="p">[</span><span class="s1">'median_miss'</span><span class="p">]</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2">, MAE $</span><span class="si">{</span><span class="n">base</span><span class="p">[</span><span class="s1">'MAE'</span><span class="p">]</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">screen</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=67aaecef">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [11]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="c1"># Step 3b: k-NN regression on the admission-time variables. k-NN is slow, so it uses a 60,000-row sample of the train rows.</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.neighbors</span><span class="w"> </span><span class="kn">import</span> <span class="n">KNeighborsRegressor</span>
+    <span class="n">sub</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="mi">60000</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">y_sub</span> <span class="o">=</span> <span class="n">sub</span><span class="p">[</span><span class="s1">'log_total_costs'</span><span class="p">]</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">knn_score</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">pre</span> <span class="o">=</span> <span class="n">ColumnTransformer</span><span class="p">([(</span><span class="s1">'cat'</span><span class="p">,</span> <span class="n">OneHotEncoder</span><span class="p">(</span><span class="n">handle_unknown</span><span class="o">=</span><span class="s1">'ignore'</span><span class="p">),</span> <span class="n">CATEGORICAL</span><span class="p">)]);</span> <span class="n">pred</span> <span class="o">=</span> <span class="n">cross_val_predict</span><span class="p">(</span><span class="n">Pipeline</span><span class="p">([(</span><span class="s1">'pre'</span><span class="p">,</span> <span class="n">pre</span><span class="p">),</span> <span class="p">(</span><span class="s1">'m'</span><span class="p">,</span> <span class="n">KNeighborsRegressor</span><span class="p">(</span><span class="n">n_neighbors</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">))]),</span> <span class="n">sub</span><span class="p">[</span><span class="n">CATEGORICAL</span><span class="p">],</span> <span class="n">y_sub</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="n">cv3</span><span class="p">);</span> <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">R2_log</span><span class="o">=</span><span class="n">r2_score</span><span class="p">(</span><span class="n">y_sub</span><span class="p">,</span> <span class="n">pred</span><span class="p">),</span> <span class="n">median_miss</span><span class="o">=</span><span class="n">median_absolute_error</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">y_sub</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">pred</span><span class="p">)),</span> <span class="n">MAE</span><span class="o">=</span><span class="n">mean_absolute_error</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">y_sub</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">pred</span><span class="p">)))</span>
+    <span class="n">knn_results</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">knn_score</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">]])</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">knn_results</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=32f7a93e">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [12]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="c1"># Step 3c: multilayer perceptron (week 7) on the admission-time variables. 40,000-row sample of the train rows, 3-fold cross-validation. Linear regression is run on the same sample so the comparison is fair.</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.neural_network</span><span class="w"> </span><span class="kn">import</span> <span class="n">MLPRegressor</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+    <span class="n">samp</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="mi">40000</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">y_s</span> <span class="o">=</span> <span class="n">samp</span><span class="p">[</span><span class="s1">'log_total_costs'</span><span class="p">]</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run_sample</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span> <span class="n">pre</span> <span class="o">=</span> <span class="n">ColumnTransformer</span><span class="p">([(</span><span class="s1">'cat'</span><span class="p">,</span> <span class="n">OneHotEncoder</span><span class="p">(</span><span class="n">handle_unknown</span><span class="o">=</span><span class="s1">'ignore'</span><span class="p">),</span> <span class="n">CATEGORICAL</span><span class="p">)]);</span> <span class="n">pred</span> <span class="o">=</span> <span class="n">cross_val_predict</span><span class="p">(</span><span class="n">Pipeline</span><span class="p">([(</span><span class="s1">'pre'</span><span class="p">,</span> <span class="n">pre</span><span class="p">),</span> <span class="p">(</span><span class="s1">'m'</span><span class="p">,</span> <span class="n">model</span><span class="p">)]),</span> <span class="n">samp</span><span class="p">[</span><span class="n">CATEGORICAL</span><span class="p">],</span> <span class="n">y_s</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="n">cv3</span><span class="p">);</span> <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">R2_log</span><span class="o">=</span><span class="n">r2_score</span><span class="p">(</span><span class="n">y_s</span><span class="p">,</span> <span class="n">pred</span><span class="p">),</span> <span class="n">median_miss</span><span class="o">=</span><span class="n">median_absolute_error</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">y_s</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">pred</span><span class="p">)),</span> <span class="n">MAE</span><span class="o">=</span><span class="n">mean_absolute_error</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">y_s</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">pred</span><span class="p">)))</span>
+    <span class="n">mlp_results</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">run_sample</span><span class="p">(</span><span class="s1">'Linear regression (same sample)'</span><span class="p">,</span> <span class="n">LinearRegression</span><span class="p">())]</span> <span class="o">+</span> <span class="p">[</span><span class="n">run_sample</span><span class="p">(</span><span class="sa">f</span><span class="s1">'MLP </span><span class="si">{</span><span class="n">h</span><span class="si">}</span><span class="s1">'</span><span class="p">,</span> <span class="n">MLPRegressor</span><span class="p">(</span><span class="n">hidden_layer_sizes</span><span class="o">=</span><span class="n">h</span><span class="p">,</span> <span class="n">early_stopping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="p">[(</span><span class="mi">32</span><span class="p">,),</span> <span class="p">(</span><span class="mi">64</span><span class="p">,),</span> <span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">)]])</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">mlp_results</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=1bff60a1">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [13]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="c1"># Loss curve (clean version): center the target so training starts near zero, and show the validation score too.</span>
+    <span class="n">y_c</span> <span class="o">=</span> <span class="n">y_s</span> <span class="o">-</span> <span class="n">y_s</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">pre</span> <span class="o">=</span> <span class="n">ColumnTransformer</span><span class="p">([(</span><span class="s1">'cat'</span><span class="p">,</span> <span class="n">OneHotEncoder</span><span class="p">(</span><span class="n">handle_unknown</span><span class="o">=</span><span class="s1">'ignore'</span><span class="p">),</span> <span class="n">CATEGORICAL</span><span class="p">)])</span>
+    <span class="n">best</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([(</span><span class="s1">'pre'</span><span class="p">,</span> <span class="n">pre</span><span class="p">),</span> <span class="p">(</span><span class="s1">'m'</span><span class="p">,</span> <span class="n">MLPRegressor</span><span class="p">(</span><span class="n">hidden_layer_sizes</span><span class="o">=</span><span class="p">(</span><span class="mi">64</span><span class="p">,),</span> <span class="n">early_stopping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">))])</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">samp</span><span class="p">[</span><span class="n">CATEGORICAL</span><span class="p">],</span> <span class="n">y_c</span><span class="p">)</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">best</span><span class="o">.</span><span class="n">named_steps</span><span class="p">[</span><span class="s1">'m'</span><span class="p">]</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">loss_curve_</span><span class="p">);</span> <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">'Training loss'</span><span class="p">);</span> <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">'Training round (epoch)'</span><span class="p">);</span> <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">'Loss (centered target)'</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">validation_scores_</span><span class="p">);</span> <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">'Validation R-squared'</span><span class="p">);</span> <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">'Training round (epoch)'</span><span class="p">);</span> <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">'R-squared'</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s1">'Multilayer perceptron (64 nodes)'</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=27a24f8a">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [14]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="c1"># Shallow decision tree (depth 3) as a picture of what drives cost. Facility is left out here because it has 200+ values; the tree is for the story, the linear model above is for predictions.</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.tree</span><span class="w"> </span><span class="kn">import</span> <span class="n">DecisionTreeRegressor</span><span class="p">,</span> <span class="n">plot_tree</span>
+    <span class="n">TREE_VARS</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'age_group'</span><span class="p">,</span> <span class="s1">'type_of_admission'</span><span class="p">,</span> <span class="s1">'payment_typology_1'</span><span class="p">]</span>
+    <span class="n">Xt</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">get_dummies</span><span class="p">(</span><span class="n">train</span><span class="p">[</span><span class="n">TREE_VARS</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">tree</span> <span class="o">=</span> <span class="n">DecisionTreeRegressor</span><span class="p">(</span><span class="n">max_depth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">min_samples_leaf</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">Xt</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">7</span><span class="p">));</span> <span class="n">plot_tree</span><span class="p">(</span><span class="n">tree</span><span class="p">,</span> <span class="n">feature_names</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">Xt</span><span class="o">.</span><span class="n">columns</span><span class="p">),</span> <span class="n">filled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">rounded</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">'Decision tree, depth 3 (value = average log cost)'</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=86494040">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="Part-3.-Classification:-where-does-the-patient-go-next?-(Mac-and-Jacob)">Part 3. Classification: where does the patient go next? <em>(Mac and Jacob)</em><a class="anchor-link" href="#Part-3.-Classification:-where-does-the-patient-go-next?-(Mac-and-Jacob)">¶</a></h2><p><strong>Question:</strong> early in a hospital stay, can we predict where the patient goes next? Four classes: Home, Post-acute facility, Died or hospice, Other.</p>
+<p><strong>Rules the group followed</strong></p>
+<ol>
+<li>Every choice (features, tree depth, settings) was made by 5-fold cross-validation on the TRAIN rows only.</li>
+<li>The 40,000 test rows are scored once, for the final models only.</li>
+<li>Length of stay, severity, risk of mortality, DRG, procedure, charges and costs are excluded because they are only known at or after discharge. They appear only in clearly labeled CEILING runs.</li>
+<li>Metric: macro F1 (every class counts equally), with per-class recall and precision, always compared with a majority-class baseline.</li>
+</ol>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=850e075d">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [15]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Train rows only for every choice. Test rows stay locked until Part 8.</span>
+<span class="n">train</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">"split"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"train"</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">"disp4"</span><span class="p">])</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">train</span><span class="p">[</span><span class="s2">"disp4"</span><span class="p">]</span>
+<span class="n">cv</span> <span class="o">=</span> <span class="n">StratifiedKFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+
+<span class="n">LABELS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Home"</span><span class="p">,</span> <span class="s2">"Post-acute facility"</span><span class="p">,</span> <span class="s2">"Died or hospice"</span><span class="p">,</span> <span class="s2">"Other"</span><span class="p">]</span>
+<span class="n">CLASSES</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>                       <span class="c1"># alphabetical, the order sklearn uses</span>
+<span class="n">CLASS_ID</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">CLASSES</span><span class="p">)}</span>    <span class="c1"># integer labels, needed for the neural net</span>
+<span class="n">PRIOR</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">value_counts</span><span class="p">(</span><span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="n">CLASSES</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+<span class="n">CAT_FEATURES</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"age_group"</span><span class="p">,</span> <span class="s2">"gender"</span><span class="p">,</span> <span class="s2">"race"</span><span class="p">,</span> <span class="s2">"ethnicity"</span><span class="p">,</span> <span class="s2">"type_of_admission"</span><span class="p">,</span>
+                <span class="s2">"emergency_department_indicator"</span><span class="p">,</span> <span class="s2">"payment_typology_1"</span><span class="p">,</span>
+                <span class="s2">"apr_mdc_code"</span><span class="p">,</span> <span class="s2">"permanent_facility_id"</span><span class="p">]</span>
+<span class="n">with_dx</span> <span class="o">=</span> <span class="n">CAT_FEATURES</span> <span class="o">+</span> <span class="p">[</span><span class="s2">"ccsr_diagnosis_code"</span><span class="p">]</span>
+<span class="n">no_sens</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">with_dx</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"race"</span><span class="p">,</span> <span class="s2">"ethnicity"</span><span class="p">,</span> <span class="s2">"gender"</span><span class="p">]]</span>
+
+<span class="n">LOG</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">one_hot</span><span class="p">(</span><span class="n">cols</span><span class="p">):</span>
+    <span class="c1"># codes seen fewer than 50 times are pooled into one "rare" level</span>
+    <span class="k">return</span> <span class="n">ColumnTransformer</span><span class="p">([(</span><span class="s2">"cat"</span><span class="p">,</span> <span class="n">OneHotEncoder</span><span class="p">(</span><span class="n">handle_unknown</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">,</span> <span class="n">min_frequency</span><span class="o">=</span><span class="mi">50</span><span class="p">),</span> <span class="n">cols</span><span class="p">)])</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">record</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">n_feat</span><span class="p">):</span>
+    <span class="n">p</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">precision_recall_fscore_support</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">LABELS</span><span class="p">,</span> <span class="n">zero_division</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">row</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"experiment"</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s2">"model"</span><span class="p">:</span> <span class="n">model_name</span><span class="p">,</span> <span class="s2">"n_features"</span><span class="p">:</span> <span class="n">n_feat</span><span class="p">,</span>
+           <span class="s2">"macro_f1"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">f1_score</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="s2">"macro"</span><span class="p">,</span> <span class="n">zero_division</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="mi">4</span><span class="p">)}</span>
+    <span class="k">for</span> <span class="n">lab</span><span class="p">,</span> <span class="n">pi</span><span class="p">,</span> <span class="n">ri</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">LABELS</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+        <span class="n">row</span><span class="p">[</span><span class="sa">f</span><span class="s2">"recall_</span><span class="si">{</span><span class="n">lab</span><span class="si">}</span><span class="s2">"</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="sa">f</span><span class="s2">"precision_</span><span class="si">{</span><span class="n">lab</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">ri</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">LOG</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s2">"experiments_log.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2"> | macro F1 </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'macro_f1'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">run_experiment</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">cols</span><span class="p">,</span> <span class="n">clf</span><span class="p">):</span>
+    <span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([(</span><span class="s2">"pre"</span><span class="p">,</span> <span class="n">one_hot</span><span class="p">(</span><span class="n">cols</span><span class="p">)),</span> <span class="p">(</span><span class="s2">"clf"</span><span class="p">,</span> <span class="n">clf</span><span class="p">)])</span>
+    <span class="n">pred</span> <span class="o">=</span> <span class="n">cross_val_predict</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="n">train</span><span class="p">[</span><span class="n">cols</span><span class="p">],</span> <span class="n">y</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="n">cv</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">record</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">clf</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">cols</span><span class="p">))</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">run_mlp</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">cols</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">)):</span>
+    <span class="c1"># MLPClassifier has no class_weight. Train normally, then divide each predicted</span>
+    <span class="c1"># probability by the class share (prior). Same effect as balanced weights.</span>
+    <span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([(</span><span class="s2">"pre"</span><span class="p">,</span> <span class="n">one_hot</span><span class="p">(</span><span class="n">cols</span><span class="p">)),</span>
+                     <span class="p">(</span><span class="s2">"clf"</span><span class="p">,</span> <span class="n">MLPClassifier</span><span class="p">(</span><span class="n">hidden_layer_sizes</span><span class="o">=</span><span class="n">hidden</span><span class="p">,</span> <span class="n">early_stopping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                           <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">))])</span>
+    <span class="n">proba</span> <span class="o">=</span> <span class="n">cross_val_predict</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="n">train</span><span class="p">[</span><span class="n">cols</span><span class="p">],</span> <span class="n">y</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">CLASS_ID</span><span class="p">),</span> <span class="n">cv</span><span class="o">=</span><span class="n">cv</span><span class="p">,</span>
+                              <span class="n">method</span><span class="o">=</span><span class="s2">"predict_proba"</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">record</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s2">"MLPClassifier"</span><span class="p">,</span> <span class="n">CLASSES</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">proba</span> <span class="o">/</span> <span class="n">PRIOR</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)],</span> <span class="nb">len</span><span class="p">(</span><span class="n">cols</span><span class="p">))</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">LR</span><span class="p">(</span><span class="n">C</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span> <span class="k">return</span> <span class="n">LogisticRegression</span><span class="p">(</span><span class="n">C</span><span class="o">=</span><span class="n">C</span><span class="p">,</span> <span class="n">class_weight</span><span class="o">=</span><span class="s2">"balanced"</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">DT</span><span class="p">(</span><span class="n">depth</span><span class="p">):</span> <span class="k">return</span> <span class="n">DecisionTreeClassifier</span><span class="p">(</span><span class="n">max_depth</span><span class="o">=</span><span class="n">depth</span><span class="p">,</span> <span class="n">class_weight</span><span class="o">=</span><span class="s2">"balanced"</span><span class="p">,</span>
+                                             <span class="n">min_samples_leaf</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=5cdf13b4">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h3 id="The-final-classification-models,-scored-once-on-the-test-rows">The final classification models, scored once on the test rows<a class="anchor-link" href="#The-final-classification-models,-scored-once-on-the-test-rows">¶</a></h3><p>Final variables, chosen by cross-validation in the experiments below: age group, type of admission, main payer, facility and the <strong>diagnosis code</strong>.</p>
+<p><strong>Note:</strong> the diagnosis code is assigned when the stay is coded, so it is not known at admission. The cost model above never uses it. Part 4 therefore uses a classifier that sees admission-time variables only, and the next cell shows what that costs.</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=a68282fc">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [16]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">FINAL_FEATS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"age_group"</span><span class="p">,</span> <span class="s2">"type_of_admission"</span><span class="p">,</span> <span class="s2">"payment_typology_1"</span><span class="p">,</span> <span class="s2">"permanent_facility_id"</span><span class="p">,</span> <span class="s2">"ccsr_diagnosis_code"</span><span class="p">]</span>
+<span class="n">test_rows</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">"split"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"test"</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">"disp4"</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"FINAL FEATURES:"</span><span class="p">,</span> <span class="n">FINAL_FEATS</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -8111,11 +8489,747 @@ Hospitals against the most common one (001456): 3 lowest and 3 highest
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>OK       Final model R2, typical stays: 0.393 (slides: 0.393)
-OK       Final model typical miss ($): 5,004.649 (slides: 5,005)
-OK       Final model average miss ($): 7,570.889 (slides: 7,571)
-OK       Same model R2, all test stays: 0.312 (slides: 0.312)
-OK       Same model average miss ($): 17,148.115 (slides: 17,148)
+<pre>FINAL FEATURES: ['age_group', 'type_of_admission', 'payment_typology_1', 'permanent_facility_id', 'ccsr_diagnosis_code']
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=4433264a">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [17]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">test_df</span> <span class="o">=</span> <span class="n">test_rows</span>
+<span class="n">yt</span> <span class="o">=</span> <span class="n">test_df</span><span class="p">[</span><span class="s2">"disp4"</span><span class="p">]</span>
+<span class="n">Xtr</span><span class="p">,</span> <span class="n">Xte</span> <span class="o">=</span> <span class="n">train</span><span class="p">[</span><span class="n">FINAL_FEATS</span><span class="p">],</span> <span class="n">test_df</span><span class="p">[</span><span class="n">FINAL_FEATS</span><span class="p">]</span>
+
+<span class="n">preds</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"Majority baseline"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="s2">"Home"</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">yt</span><span class="p">))}</span>
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">clf</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"Decision tree (depth 20)"</span><span class="p">:</span> <span class="n">DT</span><span class="p">(</span><span class="mi">20</span><span class="p">),</span> <span class="s2">"Logistic regression"</span><span class="p">:</span> <span class="n">LR</span><span class="p">()}</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">preds</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([(</span><span class="s2">"pre"</span><span class="p">,</span> <span class="n">one_hot</span><span class="p">(</span><span class="n">FINAL_FEATS</span><span class="p">)),</span> <span class="p">(</span><span class="s2">"clf"</span><span class="p">,</span> <span class="n">clf</span><span class="p">)])</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">Xtr</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">Xte</span><span class="p">)</span>
+
+<span class="n">mlp</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([(</span><span class="s2">"pre"</span><span class="p">,</span> <span class="n">one_hot</span><span class="p">(</span><span class="n">FINAL_FEATS</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s2">"clf"</span><span class="p">,</span> <span class="n">MLPClassifier</span><span class="p">(</span><span class="n">hidden_layer_sizes</span><span class="o">=</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span> <span class="n">early_stopping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                      <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">))])</span>
+<span class="n">mlp</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">Xtr</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">CLASS_ID</span><span class="p">))</span>
+<span class="n">preds</span><span class="p">[</span><span class="s2">"MLP (128, 64)"</span><span class="p">]</span> <span class="o">=</span> <span class="n">CLASSES</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">mlp</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">Xte</span><span class="p">)</span> <span class="o">/</span> <span class="n">PRIOR</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
+
+<span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">pr</span> <span class="ow">in</span> <span class="n">preds</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">p_</span><span class="p">,</span> <span class="n">r_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">precision_recall_fscore_support</span><span class="p">(</span><span class="n">yt</span><span class="p">,</span> <span class="n">pr</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">LABELS</span><span class="p">,</span> <span class="n">zero_division</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">row</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s2">"macro_f1"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">f1_score</span><span class="p">(</span><span class="n">yt</span><span class="p">,</span> <span class="n">pr</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="s2">"macro"</span><span class="p">,</span> <span class="n">zero_division</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="mi">4</span><span class="p">)}</span>
+    <span class="k">for</span> <span class="n">lab</span><span class="p">,</span> <span class="n">pi</span><span class="p">,</span> <span class="n">ri</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">LABELS</span><span class="p">,</span> <span class="n">p_</span><span class="p">,</span> <span class="n">r_</span><span class="p">):</span>
+        <span class="n">row</span><span class="p">[</span><span class="sa">f</span><span class="s2">"recall_</span><span class="si">{</span><span class="n">lab</span><span class="si">}</span><span class="s2">"</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="sa">f</span><span class="s2">"precision_</span><span class="si">{</span><span class="n">lab</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">ri</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+<span class="n">results_test</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+<span class="n">results_test</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s2">"test_results.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"row_id"</span><span class="p">:</span> <span class="n">test_df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="s2">"actual"</span><span class="p">:</span> <span class="n">yt</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="o">**</span><span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">preds</span><span class="o">.</span><span class="n">items</span><span class="p">()}}</span>
+             <span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s2">"test_predictions.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">results_test</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child jp-OutputArea-executeResult">
+<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[17]:</div>
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html" tabindex="0">
+<div>
+<style scoped="">
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+<thead>
+<tr style="text-align: right;">
+<th></th>
+<th>model</th>
+<th>macro_f1</th>
+<th>recall_Home</th>
+<th>precision_Home</th>
+<th>recall_Post-acute facility</th>
+<th>precision_Post-acute facility</th>
+<th>recall_Died or hospice</th>
+<th>precision_Died or hospice</th>
+<th>recall_Other</th>
+<th>precision_Other</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th>0</th>
+<td>Majority baseline</td>
+<td>0.2211</td>
+<td>1.000</td>
+<td>0.793</td>
+<td>0.000</td>
+<td>0.000</td>
+<td>0.000</td>
+<td>0.000</td>
+<td>0.000</td>
+<td>0.000</td>
+</tr>
+<tr>
+<th>1</th>
+<td>Decision tree (depth 20)</td>
+<td>0.3586</td>
+<td>0.445</td>
+<td>0.950</td>
+<td>0.665</td>
+<td>0.251</td>
+<td>0.488</td>
+<td>0.177</td>
+<td>0.516</td>
+<td>0.127</td>
+</tr>
+<tr>
+<th>2</th>
+<td>Logistic regression</td>
+<td>0.3786</td>
+<td>0.497</td>
+<td>0.954</td>
+<td>0.533</td>
+<td>0.314</td>
+<td>0.678</td>
+<td>0.146</td>
+<td>0.582</td>
+<td>0.140</td>
+</tr>
+<tr>
+<th>3</th>
+<td>MLP (128, 64)</td>
+<td>0.3591</td>
+<td>0.435</td>
+<td>0.967</td>
+<td>0.485</td>
+<td>0.330</td>
+<td>0.667</td>
+<td>0.145</td>
+<td>0.691</td>
+<td>0.120</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=1c360b79">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [18]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Logistic regression (our best model) in full, and how much better than random each flag is</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">classification_report</span><span class="p">(</span><span class="n">yt</span><span class="p">,</span> <span class="n">preds</span><span class="p">[</span><span class="s2">"Logistic regression"</span><span class="p">],</span> <span class="n">digits</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">zero_division</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+<span class="n">base_rate</span> <span class="o">=</span> <span class="n">yt</span><span class="o">.</span><span class="n">value_counts</span><span class="p">(</span><span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">lift</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"precision"</span><span class="p">:</span> <span class="p">[</span><span class="n">results_test</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"model"</span><span class="p">)</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">"Logistic regression"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"precision_</span><span class="si">{</span><span class="n">l</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">LABELS</span><span class="p">],</span>
+                     <span class="s2">"base_rate"</span><span class="p">:</span> <span class="p">[</span><span class="n">base_rate</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">LABELS</span><span class="p">]},</span> <span class="n">index</span><span class="o">=</span><span class="n">LABELS</span><span class="p">)</span>
+<span class="n">lift</span><span class="p">[</span><span class="s2">"lift"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">lift</span><span class="p">[</span><span class="s2">"precision"</span><span class="p">]</span> <span class="o">/</span> <span class="n">lift</span><span class="p">[</span><span class="s2">"base_rate"</span><span class="p">])</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">lift</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>                     precision    recall  f1-score   support
+
+    Died or hospice      0.146     0.678     0.241      1433
+               Home      0.954     0.497     0.653     31708
+              Other      0.140     0.582     0.226      2121
+Post-acute facility      0.314     0.533     0.395      4738
+
+           accuracy                          0.512     40000
+          macro avg      0.389     0.572     0.379     40000
+       weighted avg      0.806     0.512     0.585     40000
+
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child jp-OutputArea-executeResult">
+<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[18]:</div>
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html" tabindex="0">
+<div>
+<style scoped="">
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+<thead>
+<tr style="text-align: right;">
+<th></th>
+<th>precision</th>
+<th>base_rate</th>
+<th>lift</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th>Home</th>
+<td>0.954</td>
+<td>0.793</td>
+<td>1.20</td>
+</tr>
+<tr>
+<th>Post-acute facility</th>
+<td>0.314</td>
+<td>0.118</td>
+<td>2.65</td>
+</tr>
+<tr>
+<th>Died or hospice</th>
+<td>0.146</td>
+<td>0.036</td>
+<td>4.08</td>
+</tr>
+<tr>
+<th>Other</th>
+<td>0.140</td>
+<td>0.053</td>
+<td>2.64</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=747cccf9">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [19]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># The same logistic regression with admission-time variables only (no diagnosis code): the version the link in Part 4 can use</span>
+<span class="n">LINK_FEATS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"age_group"</span><span class="p">,</span> <span class="s2">"type_of_admission"</span><span class="p">,</span> <span class="s2">"payment_typology_1"</span><span class="p">,</span> <span class="s2">"permanent_facility_id"</span><span class="p">]</span>
+<span class="n">adm</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([(</span><span class="s2">"pre"</span><span class="p">,</span> <span class="n">one_hot</span><span class="p">(</span><span class="n">LINK_FEATS</span><span class="p">)),</span> <span class="p">(</span><span class="s2">"clf"</span><span class="p">,</span> <span class="n">LR</span><span class="p">())])</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">[</span><span class="n">LINK_FEATS</span><span class="p">],</span> <span class="n">y</span><span class="p">)</span>
+<span class="n">adm_pred</span> <span class="o">=</span> <span class="n">adm</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_rows</span><span class="p">[</span><span class="n">LINK_FEATS</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Logistic regression, admission-time variables only: test macro F1 = </span><span class="si">{</span><span class="n">f1_score</span><span class="p">(</span><span class="n">test_rows</span><span class="p">[</span><span class="s1">'disp4'</span><span class="p">],</span><span class="w"> </span><span class="n">adm_pred</span><span class="p">,</span><span class="w"> </span><span class="n">average</span><span class="o">=</span><span class="s1">'macro'</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"With the diagnosis code it scores 0.379; the majority baseline scores 0.221."</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Logistic regression, admission-time variables only: test macro F1 = 0.321
+With the diagnosis code it scores 0.379; the majority baseline scores 0.221.
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=89339fcd">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="Part-9.-Results-and-interpretation">Part 9. Results and interpretation<a class="anchor-link" href="#Part-9.-Results-and-interpretation">¶</a></h2><p><strong>Official test macro F1 (40,000 rows, scored once):</strong> majority baseline 0.221, decision tree 0.359, neural network 0.359, <strong>logistic regression 0.379 (best)</strong>.</p>
+<ul>
+<li><strong>Signal is real but modest.</strong> For the three non-Home classes, a flag from the logistic regression is about 2.6 to 4.3 times more likely to be correct than the class's base rate (the lift table), but most flags are false alarms, especially for Died or hospice and Other.</li>
+<li><strong>Why logistic regression wins.</strong> It had the best cross-validation score among the simple models and held up on the test rows. The neural network scored highest in cross-validation (0.385) but fell to 0.359 on the test rows, which suggests its CV score was optimistic. We therefore use logistic regression for the link model.</li>
+<li><strong>The limit is the information, not the tuning.</strong> Even with discharge-only variables (length of stay, severity, mortality risk) the best CV macro F1 was 0.44. Billing records have no information on functional ability, home support, bed availability or patient and family choices, which drive many discharge decisions.</li>
+<li><strong>Fairness.</strong> Dropping race, ethnicity and gender cost only about 0.002 macro F1, but this does not make the model fair: facility, payer and diagnosis can act as proxies. Per-group results are handled by the fairness analysis.</li>
+<li><strong>Limitations.</strong> The 4-class grouping is a proposal (Other mixes unrelated destinations). Predictions assume the information is known early in the stay. Fisher scores are only a rough guide for categorical data.</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b06e682e">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h3 id="Classification-experiments-behind-the-final-models-(full-mode-only)">Classification experiments behind the final models <em>(full mode only)</em><a class="anchor-link" href="#Classification-experiments-behind-the-final-models-(full-mode-only)">¶</a></h3><p>Baselines, tuning, feature selection (Fisher score, tree importances, drop-one ablation), final candidates and the probability exports. Set <code>RUN_FULL = True</code> at the top to run them. Total run time is roughly 20 to 30 minutes, mostly the cross-validation runs.</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=f77dd160">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [20]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="n">run_experiment</span><span class="p">(</span><span class="s2">"majority baseline (always Home)"</span><span class="p">,</span> <span class="n">CAT_FEATURES</span><span class="p">,</span> <span class="n">DummyClassifier</span><span class="p">(</span><span class="n">strategy</span><span class="o">=</span><span class="s2">"most_frequent"</span><span class="p">))</span>
+    <span class="n">run_experiment</span><span class="p">(</span><span class="s2">"early spec, 9 vars"</span><span class="p">,</span> <span class="n">CAT_FEATURES</span><span class="p">,</span> <span class="n">DT</span><span class="p">(</span><span class="mi">8</span><span class="p">))</span>
+    <span class="n">run_experiment</span><span class="p">(</span><span class="s2">"early spec, 9 vars"</span><span class="p">,</span> <span class="n">CAT_FEATURES</span><span class="p">,</span> <span class="n">LR</span><span class="p">())</span>
+    <span class="n">run_experiment</span><span class="p">(</span><span class="s2">"early spec + diagnosis"</span><span class="p">,</span> <span class="n">with_dx</span><span class="p">,</span> <span class="n">DT</span><span class="p">(</span><span class="mi">8</span><span class="p">))</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">run_experiment</span><span class="p">(</span><span class="s2">"early spec + diagnosis"</span><span class="p">,</span> <span class="n">with_dx</span><span class="p">,</span> <span class="n">LR</span><span class="p">()))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=d6322658">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [21]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="c1"># CEILING runs: discharge-only information. For comparison only.</span>
+    <span class="n">ceil_cat</span> <span class="o">=</span> <span class="n">with_dx</span> <span class="o">+</span> <span class="p">[</span><span class="s2">"apr_severity_of_illness_code"</span><span class="p">,</span> <span class="s2">"apr_risk_of_mortality"</span><span class="p">]</span>
+    <span class="n">los</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"length_of_stay"</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">nm</span><span class="p">,</span> <span class="n">cats</span><span class="p">,</span> <span class="n">nums</span> <span class="ow">in</span> <span class="p">[(</span><span class="s2">"CEILING + length_of_stay"</span><span class="p">,</span> <span class="n">with_dx</span><span class="p">,</span> <span class="n">los</span><span class="p">),</span>
+                           <span class="p">(</span><span class="s2">"CEILING + length_of_stay + severity + mortality risk"</span><span class="p">,</span> <span class="n">ceil_cat</span><span class="p">,</span> <span class="n">los</span><span class="p">)]:</span>
+        <span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([(</span><span class="s2">"pre"</span><span class="p">,</span> <span class="n">ColumnTransformer</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">"cat"</span><span class="p">,</span> <span class="n">OneHotEncoder</span><span class="p">(</span><span class="n">handle_unknown</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">,</span> <span class="n">min_frequency</span><span class="o">=</span><span class="mi">50</span><span class="p">),</span> <span class="n">cats</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"num"</span><span class="p">,</span> <span class="n">StandardScaler</span><span class="p">(),</span> <span class="n">nums</span><span class="p">)])),</span> <span class="p">(</span><span class="s2">"clf"</span><span class="p">,</span> <span class="n">LR</span><span class="p">())])</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">cross_val_predict</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="n">train</span><span class="p">[</span><span class="n">cats</span> <span class="o">+</span> <span class="n">nums</span><span class="p">],</span> <span class="n">y</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="n">cv</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">record</span><span class="p">(</span><span class="n">nm</span><span class="p">,</span> <span class="s2">"LogisticRegression"</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">cats</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">nums</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=8de7ac1d">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [22]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="c1"># Tune the tree depth and the logistic regression penalty</span>
+    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">]:</span>
+        <span class="n">run_experiment</span><span class="p">(</span><span class="sa">f</span><span class="s2">"early spec + diagnosis, tree depth </span><span class="si">{</span><span class="n">d</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">with_dx</span><span class="p">,</span> <span class="n">DT</span><span class="p">(</span><span class="n">d</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mi">10</span><span class="p">]:</span>
+        <span class="n">run_experiment</span><span class="p">(</span><span class="sa">f</span><span class="s2">"early spec + diagnosis, LR C=</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">with_dx</span><span class="p">,</span> <span class="n">LR</span><span class="p">(</span><span class="n">c</span><span class="p">))</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">LOG</span><span class="p">)</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"macro_f1"</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)[[</span><span class="s2">"experiment"</span><span class="p">,</span> <span class="s2">"model"</span><span class="p">,</span> <span class="s2">"n_features"</span><span class="p">,</span> <span class="s2">"macro_f1"</span><span class="p">]])</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=c288a364">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [23]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="c1"># A. Fisher score on train rows, per one-hot column, then rolled up to the original variable</span>
+    <span class="n">pre_f</span> <span class="o">=</span> <span class="n">one_hot</span><span class="p">(</span><span class="n">with_dx</span><span class="p">)</span>
+    <span class="n">Xs</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">(</span><span class="n">pre_f</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">train</span><span class="p">[</span><span class="n">with_dx</span><span class="p">]))</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"cat__"</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">pre_f</span><span class="o">.</span><span class="n">get_feature_names_out</span><span class="p">()]</span>
+    <span class="n">yv</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">Xs</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">between</span><span class="p">,</span> <span class="n">within</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">Xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">Xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">yv</span><span class="p">):</span>
+        <span class="n">sub</span> <span class="o">=</span> <span class="n">Xs</span><span class="p">[</span><span class="n">yv</span> <span class="o">==</span> <span class="n">k</span><span class="p">]</span>
+        <span class="n">m_k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sub</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="n">v_k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sub</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="o">-</span> <span class="n">m_k</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">between</span> <span class="o">+=</span> <span class="n">sub</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">m_k</span> <span class="o">-</span> <span class="n">mu</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">within</span> <span class="o">+=</span> <span class="n">sub</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">v_k</span>
+    <span class="n">fisher</span> <span class="o">=</span> <span class="n">between</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">within</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">within</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_variable</span><span class="p">(</span><span class="n">col</span><span class="p">):</span>
+        <span class="n">hits</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">with_dx</span> <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">f</span> <span class="o">+</span> <span class="s2">"_"</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">hits</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="nb">len</span><span class="p">)</span> <span class="k">if</span> <span class="n">hits</span> <span class="k">else</span> <span class="n">col</span>
+
+    <span class="n">col_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"column"</span><span class="p">:</span> <span class="n">names</span><span class="p">,</span> <span class="s2">"fisher"</span><span class="p">:</span> <span class="n">fisher</span><span class="p">})</span>
+    <span class="n">col_df</span><span class="p">[</span><span class="s2">"variable"</span><span class="p">]</span> <span class="o">=</span> <span class="n">col_df</span><span class="p">[</span><span class="s2">"column"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">to_variable</span><span class="p">)</span>
+    <span class="n">fisher_rank</span> <span class="o">=</span> <span class="n">col_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"variable"</span><span class="p">)[</span><span class="s2">"fisher"</span><span class="p">]</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">fisher_max</span><span class="o">=</span><span class="s2">"max"</span><span class="p">,</span> <span class="n">fisher_mean</span><span class="o">=</span><span class="s2">"mean"</span><span class="p">)</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">fisher_rank</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"fisher_max"</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=ec8cdbc3">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [24]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="c1"># B. Decision tree importances (second opinion)</span>
+    <span class="n">tree_pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([(</span><span class="s2">"pre"</span><span class="p">,</span> <span class="n">pre_f</span><span class="p">),</span> <span class="p">(</span><span class="s2">"clf"</span><span class="p">,</span> <span class="n">DT</span><span class="p">(</span><span class="mi">8</span><span class="p">))])</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">[</span><span class="n">with_dx</span><span class="p">],</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">imp</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">tree_pipe</span><span class="o">.</span><span class="n">named_steps</span><span class="p">[</span><span class="s2">"clf"</span><span class="p">]</span><span class="o">.</span><span class="n">feature_importances_</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">names</span><span class="p">)</span>
+    <span class="n">tree_rank</span> <span class="o">=</span> <span class="n">imp</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">imp</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">to_variable</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">"tree_importance"</span><span class="p">)</span>
+    <span class="n">compare</span> <span class="o">=</span> <span class="n">fisher_rank</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tree_rank</span><span class="p">)</span>
+    <span class="n">compare</span><span class="p">[</span><span class="s2">"fisher_rank"</span><span class="p">]</span> <span class="o">=</span> <span class="n">compare</span><span class="p">[</span><span class="s2">"fisher_max"</span><span class="p">]</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">compare</span><span class="p">[</span><span class="s2">"tree_rank"</span><span class="p">]</span> <span class="o">=</span> <span class="n">compare</span><span class="p">[</span><span class="s2">"tree_importance"</span><span class="p">]</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">compare</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"tree_rank"</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=a750ecea">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [25]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="c1"># C. Drop-one ablation: remove each variable, rerun logistic regression, see what it costs</span>
+    <span class="n">run_experiment</span><span class="p">(</span><span class="s2">"ablation baseline: all 10 vars"</span><span class="p">,</span> <span class="n">with_dx</span><span class="p">,</span> <span class="n">LR</span><span class="p">())</span>
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">with_dx</span><span class="p">:</span>
+        <span class="n">run_experiment</span><span class="p">(</span><span class="sa">f</span><span class="s2">"ablate </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">with_dx</span> <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="n">v</span><span class="p">],</span> <span class="n">LR</span><span class="p">())</span>
+    <span class="n">full_f1</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">LOG</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="s2">"experiment"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"ablation baseline: all 10 vars"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"macro_f1"</span><span class="p">]</span>
+    <span class="n">abl</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">LOG</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="s2">"experiment"</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"ablate "</span><span class="p">)])</span>
+    <span class="n">abl</span><span class="p">[</span><span class="s2">"change_vs_full"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">abl</span><span class="p">[</span><span class="s2">"macro_f1"</span><span class="p">]</span> <span class="o">-</span> <span class="n">full_f1</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">abl</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"macro_f1"</span><span class="p">)[[</span><span class="s2">"experiment"</span><span class="p">,</span> <span class="s2">"macro_f1"</span><span class="p">,</span> <span class="s2">"change_vs_full"</span><span class="p">]])</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=f3e4b894">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [26]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="n">cands</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"A: 7 vars (no race/ethnicity/gender)"</span><span class="p">:</span> <span class="n">no_sens</span><span class="p">,</span>
+        <span class="s2">"B: A minus ED indicator"</span><span class="p">:</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">no_sens</span> <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="s2">"emergency_department_indicator"</span><span class="p">],</span>
+        <span class="s2">"C: B minus MDC group"</span><span class="p">:</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">no_sens</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"emergency_department_indicator"</span><span class="p">,</span> <span class="s2">"apr_mdc_code"</span><span class="p">]],</span>
+        <span class="s2">"D: age, payer, facility, diagnosis"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"age_group"</span><span class="p">,</span> <span class="s2">"payment_typology_1"</span><span class="p">,</span>
+                                               <span class="s2">"permanent_facility_id"</span><span class="p">,</span> <span class="s2">"ccsr_diagnosis_code"</span><span class="p">],</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="n">nm</span><span class="p">,</span> <span class="n">feats</span> <span class="ow">in</span> <span class="n">cands</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">run_experiment</span><span class="p">(</span><span class="sa">f</span><span class="s2">"final candidate </span><span class="si">{</span><span class="n">nm</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">feats</span><span class="p">,</span> <span class="n">LR</span><span class="p">())</span>
+
+    <span class="n">FINAL_FEATS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"age_group"</span><span class="p">,</span> <span class="s2">"type_of_admission"</span><span class="p">,</span> <span class="s2">"payment_typology_1"</span><span class="p">,</span>
+                   <span class="s2">"permanent_facility_id"</span><span class="p">,</span> <span class="s2">"ccsr_diagnosis_code"</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">FINAL FEATURES:"</span><span class="p">,</span> <span class="n">FINAL_FEATS</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=a20eef33">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [27]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="n">run_mlp</span><span class="p">(</span><span class="s2">"MLP (64) on 7 vars, prior-corrected"</span><span class="p">,</span> <span class="n">no_sens</span><span class="p">,</span> <span class="p">(</span><span class="mi">64</span><span class="p">,))</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">run_mlp</span><span class="p">(</span><span class="s2">"MLP (128, 64) on 7 vars, prior-corrected"</span><span class="p">,</span> <span class="n">no_sens</span><span class="p">,</span> <span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">)))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=a57ef3b8">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [28]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="n">run_experiment</span><span class="p">(</span><span class="s2">"FINAL 5 vars"</span><span class="p">,</span> <span class="n">FINAL_FEATS</span><span class="p">,</span> <span class="n">DT</span><span class="p">(</span><span class="mi">20</span><span class="p">))</span>       <span class="c1"># depth 20 was the CV peak in Part 3</span>
+    <span class="n">run_experiment</span><span class="p">(</span><span class="s2">"FINAL 5 vars"</span><span class="p">,</span> <span class="n">FINAL_FEATS</span><span class="p">,</span> <span class="n">LR</span><span class="p">())</span>
+    <span class="n">run_mlp</span><span class="p">(</span><span class="s2">"FINAL 5 vars MLP (128, 64)"</span><span class="p">,</span> <span class="n">FINAL_FEATS</span><span class="p">,</span> <span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">))</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">LOG</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"experiment.str.contains('FINAL 5')"</span><span class="p">)[[</span><span class="s2">"experiment"</span><span class="p">,</span> <span class="s2">"model"</span><span class="p">,</span> <span class="s2">"macro_f1"</span><span class="p">]])</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=df8c62cc">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [29]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([(</span><span class="s2">"pre"</span><span class="p">,</span> <span class="n">one_hot</span><span class="p">(</span><span class="n">FINAL_FEATS</span><span class="p">)),</span> <span class="p">(</span><span class="s2">"clf"</span><span class="p">,</span> <span class="n">LR</span><span class="p">())])</span>
+    <span class="n">oof</span> <span class="o">=</span> <span class="n">cross_val_predict</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="n">train</span><span class="p">[</span><span class="n">FINAL_FEATS</span><span class="p">],</span> <span class="n">y</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="n">cv</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"predict_proba"</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">pipe</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">[</span><span class="n">FINAL_FEATS</span><span class="p">],</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"p_"</span> <span class="o">+</span> <span class="n">c</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">" "</span><span class="p">,</span> <span class="s2">"_"</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">pipe</span><span class="o">.</span><span class="n">named_steps</span><span class="p">[</span><span class="s2">"clf"</span><span class="p">]</span><span class="o">.</span><span class="n">classes_</span><span class="p">]</span>
+    <span class="n">test_rows</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">"split"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"test"</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">"disp4"</span><span class="p">])</span>
+    <span class="n">test_proba</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">test_rows</span><span class="p">[</span><span class="n">FINAL_FEATS</span><span class="p">])</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">oof</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">train</span><span class="o">.</span><span class="n">index</span><span class="p">),</span>
+                     <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">test_proba</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">test_rows</span><span class="o">.</span><span class="n">index</span><span class="p">)])</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"split"</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">out</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="s2">"split"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">"row_id"</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s2">"oof_probabilities.csv"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="s2">"| row sums:"</span><span class="p">,</span> <span class="n">out</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span><span class="o">.</span><span class="n">unique</span><span class="p">()[:</span><span class="mi">3</span><span class="p">])</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"split"</span><span class="p">)[</span><span class="n">cols</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=81024ce0">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [30]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">RUN_FULL</span><span class="p">:</span>
+    <span class="n">LINK_FEATS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"age_group"</span><span class="p">,</span> <span class="s2">"type_of_admission"</span><span class="p">,</span> <span class="s2">"payment_typology_1"</span><span class="p">,</span> <span class="s2">"permanent_facility_id"</span><span class="p">]</span>
+    <span class="n">run_experiment</span><span class="p">(</span><span class="s2">"LINK export vars (admission-time only)"</span><span class="p">,</span> <span class="n">LINK_FEATS</span><span class="p">,</span> <span class="n">LR</span><span class="p">())</span>
+
+    <span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([(</span><span class="s2">"pre"</span><span class="p">,</span> <span class="n">one_hot</span><span class="p">(</span><span class="n">LINK_FEATS</span><span class="p">)),</span> <span class="p">(</span><span class="s2">"clf"</span><span class="p">,</span> <span class="n">LR</span><span class="p">())])</span>
+    <span class="n">oof</span> <span class="o">=</span> <span class="n">cross_val_predict</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="n">train</span><span class="p">[</span><span class="n">LINK_FEATS</span><span class="p">],</span> <span class="n">y</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="n">cv</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"predict_proba"</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">pipe</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">[</span><span class="n">LINK_FEATS</span><span class="p">],</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"p_"</span> <span class="o">+</span> <span class="n">c</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">" "</span><span class="p">,</span> <span class="s2">"_"</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">pipe</span><span class="o">.</span><span class="n">named_steps</span><span class="p">[</span><span class="s2">"clf"</span><span class="p">]</span><span class="o">.</span><span class="n">classes_</span><span class="p">]</span>
+    <span class="n">test_p</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">test_rows</span><span class="p">[</span><span class="n">LINK_FEATS</span><span class="p">])</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">oof</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">train</span><span class="o">.</span><span class="n">index</span><span class="p">),</span>
+                     <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">test_p</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">test_rows</span><span class="o">.</span><span class="n">index</span><span class="p">)])</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"split"</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">out</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="s2">"split"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">"row_id"</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s2">"oof_probabilities_admission.csv"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=023072c0">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="Part-4.-The-link:-does-knowing-the-likely-destination-help-predict-cost?">Part 4. The link: does knowing the likely destination help predict cost?<a class="anchor-link" href="#Part-4.-The-link:-does-knowing-the-likely-destination-help-predict-cost?">¶</a></h2><p>The classifier predicts where the patient goes after the stay. We test three versions of the cost model on the same typical stays:</p>
+<ul>
+<li><strong>A:</strong> the four admission variables only (the final cost model).</li>
+<li><strong>B:</strong> A plus the <strong>predicted</strong> destination, from a logistic regression on the same admission-time variables (no diagnosis code). This is the link a hospital could use at admission.</li>
+<li><strong>C:</strong> A plus the <strong>true</strong> destination. A hospital only knows it after the stay, so this shows the most the destination could add.</li>
+</ul>
+<p>The destination probabilities for the training rows are out-of-fold: each row is scored by a model that did not train on it. We use a plain (unweighted) logistic regression here so the probabilities are true rates, not inflated for the rare classes.</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8653fc45">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [31]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">tr</span><span class="p">,</span> <span class="n">te</span> <span class="o">=</span> <span class="n">df</span><span class="p">[(</span><span class="n">df</span><span class="p">[</span><span class="s1">'split'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'train'</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">'high_cost'</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)],</span> <span class="n">df</span><span class="p">[(</span><span class="n">df</span><span class="p">[</span><span class="s1">'split'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'test'</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">'high_cost'</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)]</span>
+<span class="n">enc_link</span> <span class="o">=</span> <span class="n">OneHotEncoder</span><span class="p">(</span><span class="n">handle_unknown</span><span class="o">=</span><span class="s1">'ignore'</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">tr</span><span class="p">[</span><span class="n">LEAN</span><span class="p">])</span>
+<span class="n">Xtr</span><span class="p">,</span> <span class="n">Xte</span> <span class="o">=</span> <span class="n">enc_link</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">tr</span><span class="p">[</span><span class="n">LEAN</span><span class="p">]),</span> <span class="n">enc_link</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">te</span><span class="p">[</span><span class="n">LEAN</span><span class="p">])</span>
+<span class="n">cv_link</span> <span class="o">=</span> <span class="n">KFold</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+
+<span class="n">clf</span> <span class="o">=</span> <span class="n">LogisticRegression</span><span class="p">(</span><span class="n">max_iter</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+<span class="n">P_tr</span> <span class="o">=</span> <span class="n">cross_val_predict</span><span class="p">(</span><span class="n">clf</span><span class="p">,</span> <span class="n">Xtr</span><span class="p">,</span> <span class="n">tr</span><span class="p">[</span><span class="s1">'disp4'</span><span class="p">],</span> <span class="n">cv</span><span class="o">=</span><span class="n">cv_link</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">'predict_proba'</span><span class="p">)</span>
+<span class="n">clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">Xtr</span><span class="p">,</span> <span class="n">tr</span><span class="p">[</span><span class="s1">'disp4'</span><span class="p">]);</span> <span class="n">P_te</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">Xte</span><span class="p">)</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">accuracy_score</span><span class="p">(</span><span class="n">te</span><span class="p">[</span><span class="s1">'disp4'</span><span class="p">],</span> <span class="n">clf</span><span class="o">.</span><span class="n">classes_</span><span class="p">[</span><span class="n">P_te</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="mi">1</span><span class="p">)])</span>
+<span class="n">majority</span> <span class="o">=</span> <span class="p">(</span><span class="n">te</span><span class="p">[</span><span class="s1">'disp4'</span><span class="p">]</span> <span class="o">==</span> <span class="n">tr</span><span class="p">[</span><span class="s1">'disp4'</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">idxmax</span><span class="p">())</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Destination classifier on typical test stays: accuracy </span><span class="si">{</span><span class="n">acc</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> against </span><span class="si">{</span><span class="n">majority</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> for always guessing Home"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Destination classifier on typical test stays: accuracy 0.817 against 0.816 for always guessing Home
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=fb915c02">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [32]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">cost_model</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">A_tr</span><span class="p">,</span> <span class="n">A_te</span><span class="p">):</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">LinearRegression</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">A_tr</span><span class="p">,</span> <span class="n">tr</span><span class="p">[</span><span class="s1">'log_total_costs'</span><span class="p">]);</span> <span class="n">p</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">A_te</span><span class="p">)</span>
+    <span class="n">r2</span> <span class="o">=</span> <span class="n">r2_score</span><span class="p">(</span><span class="n">te</span><span class="p">[</span><span class="s1">'log_total_costs'</span><span class="p">],</span> <span class="n">p</span><span class="p">);</span> <span class="n">typical</span> <span class="o">=</span> <span class="n">median_absolute_error</span><span class="p">(</span><span class="n">te</span><span class="p">[</span><span class="s1">'total_costs'</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">p</span><span class="p">));</span> <span class="n">avg</span> <span class="o">=</span> <span class="n">mean_absolute_error</span><span class="p">(</span><span class="n">te</span><span class="p">[</span><span class="s1">'total_costs'</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: R2 (log) = </span><span class="si">{</span><span class="n">r2</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> | typical miss = $</span><span class="si">{</span><span class="n">typical</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2"> | average miss = $</span><span class="si">{</span><span class="n">avg</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">r2</span>
+
+<span class="n">true_tr</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">get_dummies</span><span class="p">(</span><span class="n">tr</span><span class="p">[</span><span class="s1">'disp4'</span><span class="p">])</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">clf</span><span class="o">.</span><span class="n">classes_</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span>
+<span class="n">true_te</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">get_dummies</span><span class="p">(</span><span class="n">te</span><span class="p">[</span><span class="s1">'disp4'</span><span class="p">])</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">clf</span><span class="o">.</span><span class="n">classes_</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span>
+<span class="n">r2_A</span> <span class="o">=</span> <span class="n">cost_model</span><span class="p">(</span><span class="s1">'A  admission variables only              '</span><span class="p">,</span> <span class="n">Xtr</span><span class="p">,</span> <span class="n">Xte</span><span class="p">)</span>
+<span class="n">r2_B</span> <span class="o">=</span> <span class="n">cost_model</span><span class="p">(</span><span class="s1">'B  + PREDICTED destination (the link)    '</span><span class="p">,</span> <span class="n">sparse</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">Xtr</span><span class="p">,</span> <span class="n">sparse</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">(</span><span class="n">P_tr</span><span class="p">)])</span><span class="o">.</span><span class="n">tocsr</span><span class="p">(),</span> <span class="n">sparse</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">Xte</span><span class="p">,</span> <span class="n">sparse</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">(</span><span class="n">P_te</span><span class="p">)])</span><span class="o">.</span><span class="n">tocsr</span><span class="p">())</span>
+<span class="n">r2_C</span> <span class="o">=</span> <span class="n">cost_model</span><span class="p">(</span><span class="s1">'C  + TRUE destination (known only later) '</span><span class="p">,</span> <span class="n">sparse</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">Xtr</span><span class="p">,</span> <span class="n">true_tr</span><span class="p">])</span><span class="o">.</span><span class="n">tocsr</span><span class="p">(),</span> <span class="n">sparse</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">Xte</span><span class="p">,</span> <span class="n">true_te</span><span class="p">])</span><span class="o">.</span><span class="n">tocsr</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Predicted destination adds </span><span class="si">{</span><span class="n">r2_B</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">r2_A</span><span class="si">:</span><span class="s2">+.4f</span><span class="si">}</span><span class="s2"> to R2. True destination adds </span><span class="si">{</span><span class="n">r2_C</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">r2_A</span><span class="si">:</span><span class="s2">+.4f</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>A  admission variables only              : R2 (log) = 0.3927 | typical miss = $5,005 | average miss = $7,571
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>B  + PREDICTED destination (the link)    : R2 (log) = 0.3933 | typical miss = $4,997 | average miss = $7,566
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>C  + TRUE destination (known only later) : R2 (log) = 0.4173 | typical miss = $4,883 | average miss = $7,405
+
+Predicted destination adds +0.0006 to R2. True destination adds +0.0247.
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2249b29e">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<p><strong>Reading it:</strong> admission information barely predicts where a patient goes (accuracy is no better than always guessing Home), so the predicted destination adds almost nothing to the cost model. Even the true destination adds only a little. The two models are better used side by side: one estimates cost, the other helps plan discharge. The destination does not improve the cost estimate.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f4427cd1">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="Part-5.-Do-the-numbers-match-the-slides?">Part 5. Do the numbers match the slides?<a class="anchor-link" href="#Part-5.-Do-the-numbers-match-the-slides?">¶</a></h2>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=d23ee1e9">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [33]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">scores</span> <span class="o">=</span> <span class="n">results_test</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">'model'</span><span class="p">)[</span><span class="s1">'macro_f1'</span><span class="p">]</span>
+<span class="n">checks</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s1">'Regression: final model R2, typical stays'</span><span class="p">,</span> <span class="n">typical_stays</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.393</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">'Regression: typical miss ($)'</span><span class="p">,</span> <span class="n">typical_stays</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">5005</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">'Regression: average miss ($)'</span><span class="p">,</span> <span class="n">typical_stays</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="mi">7571</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">'Regression: same model R2, all test stays'</span><span class="p">,</span> <span class="n">all_stays</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.312</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">'Regression: same model average miss ($)'</span><span class="p">,</span> <span class="n">all_stays</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="mi">17148</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">'Classification: majority baseline macro F1'</span><span class="p">,</span> <span class="n">scores</span><span class="p">[</span><span class="s1">'Majority baseline'</span><span class="p">],</span> <span class="mf">0.221</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">'Classification: decision tree macro F1'</span><span class="p">,</span> <span class="n">scores</span><span class="p">[</span><span class="s1">'Decision tree (depth 20)'</span><span class="p">],</span> <span class="mf">0.359</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">'Classification: neural network macro F1'</span><span class="p">,</span> <span class="n">scores</span><span class="p">[</span><span class="s1">'MLP (128, 64)'</span><span class="p">],</span> <span class="mf">0.359</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">'Classification: logistic regression macro F1'</span><span class="p">,</span> <span class="n">scores</span><span class="p">[</span><span class="s1">'Logistic regression'</span><span class="p">],</span> <span class="mf">0.379</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">'Link: R2 of cost model A (admission only)'</span><span class="p">,</span> <span class="n">r2_A</span><span class="p">,</span> <span class="mf">0.393</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">),</span>
+<span class="p">]</span>
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">got</span><span class="p">,</span> <span class="n">want</span><span class="p">,</span> <span class="n">tol</span> <span class="ow">in</span> <span class="n">checks</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'OK     '</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nb">abs</span><span class="p">(</span><span class="n">got</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">want</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">tol</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'DIFFERS'</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">got</span><span class="si">:</span><span class="s2">,.3f</span><span class="si">}</span><span class="s2"> (slides: </span><span class="si">{</span><span class="n">want</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'OK     '</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">r2_B</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">r2_A</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">0.002</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'DIFFERS'</span><span class="si">}</span><span class="s2">  Link: predicted destination adds </span><span class="si">{</span><span class="n">r2_B</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">r2_A</span><span class="si">:</span><span class="s2">+.4f</span><span class="si">}</span><span class="s2"> to R2 (slides: about nothing)"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>OK       Regression: final model R2, typical stays: 0.393 (slides: 0.393)
+OK       Regression: typical miss ($): 5,004.649 (slides: 5,005)
+OK       Regression: average miss ($): 7,570.889 (slides: 7,571)
+OK       Regression: same model R2, all test stays: 0.312 (slides: 0.312)
+OK       Regression: same model average miss ($): 17,148.115 (slides: 17,148)
+OK       Classification: majority baseline macro F1: 0.221 (slides: 0.221)
+OK       Classification: decision tree macro F1: 0.359 (slides: 0.359)
+OK       Classification: neural network macro F1: 0.359 (slides: 0.359)
+OK       Classification: logistic regression macro F1: 0.379 (slides: 0.379)
+OK       Link: R2 of cost model A (admission only): 0.393 (slides: 0.393)
+OK       Link: predicted destination adds +0.0006 to R2 (slides: about nothing)
 </pre>
 </div>
 </div>

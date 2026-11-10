@@ -1,42 +1,43 @@
-# BTE 413 Final Group Project: predicting the cost of a hospital stay at admission
+# BTE 413 Final Group Project: hospital stays in New York, 2024
 
-Regression group demo (Ethan Grossman and Niko). University of Miami, BTE 413, Fall 2026.
+Regression group: Ethan Grossman and Niko. Classification group: Mac and Jacob. Ethics and fairness: Nikki. University of Miami, BTE 413, Fall 2026.
 
 ## Run it (about a minute, no Google Drive needed)
 
-1. Open the notebook in Google Colab: https://colab.research.google.com/github/ethanmooseg-star/bte413-hospital-cost/blob/main/BTE413_Demo.ipynb
+1. Open the notebook in Google Colab: https://colab.research.google.com/github/ethanmooseg-star/bte413-hospital-cost/blob/main/BTE413_Final_Group_Project_Notebook.ipynb
 2. Choose **Runtime > Run all**.
 3. The last cell compares every number with the slides and prints OK or DIFFERS.
 
-The notebook loads its data from a public link, so it also runs on a fresh runtime or for anyone else.
+The notebook loads its data from a public link, so it runs on a fresh runtime and for anyone else. By default it runs only the final models. To also rerun every experiment behind them (variable screens, k-NN, neural networks, cross-validation, ablation), set `RUN_FULL = True` in the first code cell. That takes about 45 minutes.
 
 ## What is in this folder
 
 | File | What it is |
 |---|---|
-| `BTE413_Demo.ipynb` | The demo notebook: data, variable check, final model and test score, what drives cost |
+| `BTE413_Final_Group_Project_Notebook.ipynb` | The one notebook: data, regression, classification, the link between them, and a check against the slides |
 | `sparcs_2024_clean_sample.csv.gz` | The cleaned data: 200,000 random stays, with a fixed `split` column (160,000 train, 40,000 test) |
 | `clean_sparcs_2024.py` | The cleaning script that makes the data file from the raw state file |
-| `BTE413_Demo_outputs_backup.html` | The notebook with its outputs, in case Colab or Wi-Fi fails |
+| `BTE413_Final_Group_Project_Notebook_outputs_backup.html` | The notebook with its outputs, in case Colab or Wi-Fi fails |
 
 ## The project in short
 
-- **Problem:** estimate what a hospital stay will cost at the moment of admission.
-- **Data:** New York State Hospital Inpatient Discharges (SPARCS), 2024. It is a public, de-identified file (no names, no patient IDs, no dates). The full file has about 2.2 million stays; we use a random 200,000.
-- **Rule:** the model only uses what a hospital knows when the patient arrives. Diagnosis, procedure, severity, length of stay and discharge status are set later, so they are left out.
-- **Model:** linear regression on four variables (age group, type of admission, main payer, facility), predicting the log of cost. It is explainable, which a hospital needs.
-- **Trimming:** we train and test on the 90% of stays under $54,107. That cutoff uses the final cost, so the model describes typical stays and a hospital could not apply the cutoff at admission.
+- **Data:** New York State Hospital Inpatient Discharges (SPARCS), 2024. A public, de-identified file (no names, no patient IDs, no dates). The full file has about 2.2 million stays; we use a random 200,000.
+- **Regression (Ethan and Niko):** estimate what a stay will cost at the moment of admission. The model only uses what a hospital knows when the patient arrives. Linear regression on four variables (age group, type of admission, main payer, facility), predicting the log of cost. It is explainable, which a hospital needs. We train and test on the 90% of stays under $54,107, so it describes typical stays.
+- **Classification (Mac and Jacob):** predict where the patient goes after the stay, in four groups: Home, Post-acute facility, Died or hospice, Other. Logistic regression, a decision tree and a neural network, compared by macro F1.
+- **The link:** does knowing the likely destination help predict cost? Adding the predicted destination (from admission-time variables) to the cost model changes R² by +0.0006. Even the true destination, which is only known after the stay, adds +0.025.
 
 ## Results (test rows)
 
-| Stays scored | R² (log) | Typical miss | Average miss |
-|---|---|---|---|
-| Typical stays under $54,107 (35,940) | 0.393 | $5,005 | $7,571 |
-| All test stays (40,000) | 0.312 | $5,822 | $17,148 |
+| Model | Stays scored | Result |
+|---|---|---|
+| Cost, linear regression | 35,940 typical stays | R² 0.393, typical miss $5,005, average miss $7,571 |
+| Cost, same model | all 40,000 | R² 0.312, typical miss $5,822, average miss $17,148 |
+| Destination, logistic regression (with diagnosis code) | 40,000 | macro F1 0.379 (majority baseline 0.221) |
+| Destination, logistic regression (admission-time variables only) | 40,000 | macro F1 0.321 |
 
-The "typical miss" is the median error in dollars. The model badly underestimates the costliest 10% of stays.
+The "typical miss" is the median error in dollars. The cost model badly underestimates the costliest 10% of stays. The destination classifier's best score uses the diagnosis code, which is assigned when the stay is coded and is not known at admission.
 
 ## Data source and privacy
 
 - Source: [Hospital Inpatient Discharges (SPARCS De-Identified): 2024](https://health.data.ny.gov/), New York State Department of Health.
-- We checked the four model variables against the HIPAA Safe Harbor list of identifiers: none is on it. This is a check against the list, not a compliance certification.
+- We checked the four cost-model variables against the HIPAA Safe Harbor list of identifiers: none is on it. This is a check against the list, not a compliance certification.
